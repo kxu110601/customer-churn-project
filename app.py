@@ -5,7 +5,7 @@ import psycopg2
 
 from fastapi import FastAPI
 from pydantic import BaseModel
-
+from typing import List, Optional
 
 app = FastAPI(title="Customer Churn Prediction API")
 
@@ -53,17 +53,17 @@ def save_prediction(customer_id, prediction, probability):
     cur.close()
     conn.close()
 class CustomerData(BaseModel):
-    Tenure: float
-    WarehouseToHome: float
-    HourSpendOnApp: float
+    Tenure: Optional[float] = None
+    WarehouseToHome: Optional[float] = None
+    HourSpendOnApp: Optional[float] = None
     PreferedOrderCat: str
     SatisfactionScore: int
     NumberOfAddress: int
     Complain: int
-    OrderAmountHikeFromlastYear: float
-    CouponUsed: float
-    OrderCount: float
-    DaySinceLastOrder: float
+    OrderAmountHikeFromlastYear: Optional[float] = None
+    CouponUsed: Optional[float] = None
+    OrderCount: Optional[float] = None
+    DaySinceLastOrder: Optional[float] = None
     CashbackAmount: float
     CustomerID: int
 
@@ -83,6 +83,11 @@ def predict(customer: CustomerData):
     if customer_data["PreferedOrderCat"] == "Mobile Phone":
         customer_data["PreferedOrderCat"] = "Mobile"
 
+    customer_data = {
+        key: (float("nan") if value is None else value)
+        for key, value in customer_data.items()
+    }
+
     customer_df = pd.DataFrame([customer_data])
 
     prediction = int(pipeline.predict(customer_df)[0])
@@ -97,4 +102,40 @@ def predict(customer: CustomerData):
         "risk": "At risk of churn"
         if prediction == 1
         else "Likely to remain active"
+    }
+
+@app.post("/batch-predict")
+def batch_predict(customers: List[CustomerData]):
+    results = []
+
+    for customer in customers:
+        customer_data = customer.model_dump()
+        customer_id = customer_data.pop("CustomerID")
+
+        if customer_data["PreferedOrderCat"] == "Mobile Phone":
+            customer_data["PreferedOrderCat"] = "Mobile"
+
+        customer_data = {
+            key: (float("nan") if value is None else value)
+            for key, value in customer_data.items()
+        }
+
+        customer_df = pd.DataFrame([customer_data])
+
+        prediction = int(pipeline.predict(customer_df)[0])
+        probability = float(
+            pipeline.predict_proba(customer_df)[0][1]
+        )
+
+        save_prediction(customer_id, prediction, probability)
+
+        results.append({
+            "customer_id": customer_id,
+            "prediction": prediction,
+            "churn_probability": probability
+        })
+
+    return {
+        "customers_processed": len(results),
+        "predictions": results
     }

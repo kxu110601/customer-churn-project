@@ -5,3 +5,4 @@ scikit-learn
 joblib
 openpyxl
 psycopg2-binary
+requests
