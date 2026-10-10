@@ -59,17 +59,84 @@ The API provides two prediction endpoints:
 
    https://sea-lion-app-3sn49.ondigitalocean.app/docs
 
-2. Expand either `POST /predict` or `POST /batch-predict`.
+2. Expand `POST /predict`.
 
 3. Click **Try it out**.
 
-4. Enter the customer data in the request body.
+4. Replace the request body with one of the example customers below.
 
 5. Click **Execute**.
 
-6. The API will return the prediction and churn probability.
+6. A successful request will return HTTP status `200` along with the predicted churn class, churn probability, and risk classification.
 
-Example response:
+A prediction of `0` means that the customer is predicted to remain active.  
+A prediction of `1` means that the customer is predicted to churn.
+
+#### Example Customer 1
+
+```json
+{
+  "Tenure": 12,
+  "WarehouseToHome": 15,
+  "HourSpendOnApp": 3,
+  "PreferedOrderCat": "Mobile",
+  "SatisfactionScore": 2,
+  "NumberOfAddress": 3,
+  "Complain": 1,
+  "OrderAmountHikeFromlastYear": 12,
+  "CouponUsed": 1,
+  "OrderCount": 2,
+  "DaySinceLastOrder": 25,
+  "CashbackAmount": 120,
+  "CustomerID": 1001
+}
+```
+
+#### Example Customer 2
+
+```json
+{
+  "Tenure": 20,
+  "WarehouseToHome": 8,
+  "HourSpendOnApp": 4,
+  "PreferedOrderCat": "Laptop & Accessory",
+  "SatisfactionScore": 4,
+  "NumberOfAddress": 2,
+  "Complain": 0,
+  "OrderAmountHikeFromlastYear": 10,
+  "CouponUsed": 2,
+  "OrderCount": 8,
+  "DaySinceLastOrder": 3,
+  "CashbackAmount": 180,
+  "CustomerID": 1002
+}
+```
+
+#### Example Customer 3
+
+This example demonstrates that the API can also process supported missing values.
+
+```json
+{
+  "Tenure": null,
+  "WarehouseToHome": 15,
+  "HourSpendOnApp": 3,
+  "PreferedOrderCat": "Mobile",
+  "SatisfactionScore": 2,
+  "NumberOfAddress": 3,
+  "Complain": 1,
+  "OrderAmountHikeFromlastYear": 12,
+  "CouponUsed": null,
+  "OrderCount": 2,
+  "DaySinceLastOrder": 25,
+  "CashbackAmount": 120,
+  "CustomerID": 1003
+}
+```
+
+The preprocessing pipeline handles supported missing values before the customer record is passed to the Random Forest model.
+
+An example response is:
 
 ```json
 {
@@ -78,6 +145,59 @@ Example response:
   "risk": "Likely to remain active"
 }
 ```
+
+The exact prediction and churn probability depend on the customer data supplied to the API.
+
+### Testing Batch Predictions Through the API
+
+The `POST /batch-predict` endpoint accepts multiple customer records in a single request.
+
+1. Expand `POST /batch-predict`.
+
+2. Click **Try it out**.
+
+3. Replace the request body with the following example:
+
+```json
+[
+  {
+    "Tenure": 12,
+    "WarehouseToHome": 15,
+    "HourSpendOnApp": 3,
+    "PreferedOrderCat": "Mobile",
+    "SatisfactionScore": 2,
+    "NumberOfAddress": 3,
+    "Complain": 1,
+    "OrderAmountHikeFromlastYear": 12,
+    "CouponUsed": 1,
+    "OrderCount": 2,
+    "DaySinceLastOrder": 25,
+    "CashbackAmount": 120,
+    "CustomerID": 1001
+  },
+  {
+    "Tenure": 20,
+    "WarehouseToHome": 8,
+    "HourSpendOnApp": 4,
+    "PreferedOrderCat": "Laptop & Accessory",
+    "SatisfactionScore": 4,
+    "NumberOfAddress": 2,
+    "Complain": 0,
+    "OrderAmountHikeFromlastYear": 10,
+    "CouponUsed": 2,
+    "OrderCount": 8,
+    "DaySinceLastOrder": 3,
+    "CashbackAmount": 180,
+    "CustomerID": 1002
+  }
+]
+```
+
+4. Click **Execute**.
+
+The API will return a prediction for each customer in the request.
+
+For testing the complete held-out testing set of 1,689 customers, use the `batch_predict.py` script described in the next section.
 
 ## Running Batch Predictions
 
