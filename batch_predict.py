@@ -6,7 +6,7 @@ import requests
 DATA_FILE = Path("data") / "E Commerce Dataset.xlsx"
 
 # Use local API for testing first
-API_URL = "http://127.0.0.1:8000/batch-predict"
+API_URL = "https://sea-lion-app-3sn49.ondigitalocean.app/batch-predict"
 
 BATCH_SIZE = 100
 
