@@ -2,10 +2,11 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+from sklearn.model_selection import train_test_split
 
 DATA_FILE = Path("data") / "E Commerce Dataset.xlsx"
 
-# Use local API for testing first
+# Use deployed API for testing first
 API_URL = "https://sea-lion-app-3sn49.ondigitalocean.app/batch-predict"
 
 BATCH_SIZE = 100
@@ -13,13 +14,30 @@ BATCH_SIZE = 100
 # Load customer data
 df = pd.read_excel(DATA_FILE, sheet_name="E Comm")
 
-# Churn is the known result from the historical dataset,
-# so it should not be sent to the prediction model.
-df = df.drop(columns=["Churn"])
+# Standardize category name the same way as model training
+df["PreferedOrderCat"] = df["PreferedOrderCat"].replace(
+    "Mobile Phone",
+    "Mobile"
+)
 
-# Dataset used for this project does not retain CustomerID,
-# so create an ID for tracking prediction results.
-df.insert(0, "CustomerID", range(1, len(df) + 1))
+# Separate features and actual churn result
+X = df.drop(columns=["Churn"])
+y = df["Churn"]
+
+# Recreate the exact same 70/30 split used during model training
+_, X_test, _, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.30,
+    random_state=42,
+    stratify=y
+)
+
+# Only send the held-out test customers to the deployed model
+df = X_test.copy()
+
+# Create IDs using their original dataset row numbers
+df.insert(0, "CustomerID", df.index + 1)
 
 # Convert pandas NaN values to Python None.
 # requests will encode None as JSON null.
